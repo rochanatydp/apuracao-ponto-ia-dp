@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apuração de Ponto — IA no DP</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0D0D0D; color: #EEEEEE; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 680px; margin: 0 auto; }
+  .logo { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #00C896; margin-bottom: 4px; }
+  h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #AAAAAA; margin-bottom: 1.5rem; line-height: 1.6; }
+  .card { background: #1A1A1A; border: 0.5px solid #2A2A2A; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .card-sub { font-size: 12px; color: #888; margin-bottom: 14px; }
+  label { font-size: 12px; color: #AAAAAA; display: block; margin-bottom: 4px; }
+  input[type="text"], input[type="time"], select, textarea {
+    width: 100%; padding: 9px 12px; background: #111; border: 0.5px solid #333;
+    border-radius: 8px; color: #EEE; font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #00C896; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .drop-zone {
+    border: 1.5px dashed #333; border-radius: 8px; padding: 2rem 1rem;
+    text-align: center; cursor: pointer; transition: all 0.15s; background: #111;
+  }
+  .drop-zone:hover { border-color: #00C896; background: #0A1A14; }
+  .drop-zone.active { border-color: #00C896; background: #0A1A14; }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.6; }
+  .drop-text { font-size: 13px; color: #AAAAAA; }
+  .drop-hint { font-size: 11px; color: #666; margin-top: 4px; }
+  .file-preview { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #111; border-radius: 8px; margin-top: 10px; border: 0.5px solid #2A2A2A; }
+  .file-name { font-size: 13px; color: #EEE; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-remove { font-size: 11px; color: #FF6B6B; cursor: pointer; padding: 2px 8px; border-radius: 4px; border: 0.5px solid #FF6B6B; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #00C896; }
+  .checkbox-row label { font-size: 13px; color: #CCCCCC; margin: 0; }
+  .hint { font-size: 11px; color: #666; margin-top: 2px; }
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; background: #1A1000; color: #EF9F27; border: 0.5px solid #854F0B; line-height: 1.5; }
+  .btn { width: 100%; padding: 13px; background: #00C896; color: #0A1A14; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em; }
+  .btn:hover { background: #1D9E75; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .loading { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #AAAAAA; padding: 1rem 0; }
+  .spinner { width: 18px; height: 18px; border: 2px solid #333; border-top-color: #00C896; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result-card { background: #141414; border: 0.5px solid #2A2A2A; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
+  .result-title { font-size: 13px; font-weight: 600; color: #00C896; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 0.5px solid #2A2A2A; }
+  .result-content { font-size: 12.5px; color: #CCCCCC; line-height: 1.8; white-space: pre-wrap; font-family: 'Courier New', monospace; }
+  .copy-btn { margin-top: 14px; padding: 8px 16px; border: 0.5px solid #333; background: transparent; border-radius: 8px; font-size: 12px; color: #AAAAAA; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1A1A1A; color: #EEE; }
+  .accent-bar { height: 4px; background: #00C896; border-radius: 4px 4px 0 0; margin: -1.25rem -1.25rem 1.25rem; border-radius: 12px 12px 0 0; }
+  @media (max-width: 500px) {
+    .row-3 { grid-template-columns: 1fr 1fr; }
+    .row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">IA NO DP</div>
+  <h1>Apuração de Ponto com IA</h1>
+  <p class="subtitle">Anexe o espelho de ponto em PDF ou foto. A IA apura horas extras, adicional noturno e saldo do banco de horas automaticamente.</p>
+
+  <div class="card">
+    <div class="accent-bar"></div>
+    <div class="card-title">Arquivo do ponto</div>
+    <div class="card-sub">PDF ou imagem (JPG, PNG) do espelho de ponto</div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text">Clique para anexar ou arraste o arquivo aqui</div>
+      <div class="drop-hint">PDF, JPG ou PNG · máx. 10MB</div>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,image/*" style="display:none" onchange="handleFile(this)">
+    <div id="filePreview" style="display:none" class="file-preview">
+      <span>📄</span>
+      <span class="file-name" id="fileName"></span>
+      <span class="file-remove" onclick="removeFile()">Remover</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Jornada de trabalho</div>
+    <div class="card-sub">Informe os horários padrão do colaborador</div>
+    <div class="row-3">
+      <div class="field">
+        <label>Entrada</label>
+        <input type="time" id="entrada" value="08:00">
+      </div>
+      <div class="field">
+        <label>Saída</label>
+        <input type="time" id="saida" value="17:00">
+      </div>
+      <div class="field">
+        <label>Intervalo</label>
+        <select id="intervalo">
+          <option value="30">30 min</option>
+          <option value="60" selected>1 hora</option>
+          <option value="90">1h30</option>
+          <option value="120">2 horas</option>
+        </select>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label>Dias de trabalho</label>
+        <select id="diasSemana">
+          <option value="seg-sex">Segunda a Sexta</option>
+          <option value="seg-sab">Segunda a Sábado</option>
+          <option value="seg-dom">Segunda a Domingo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Saída Sábado (se aplicável)</label>
+        <input type="time" id="saidaSab" value="12:00">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Período de apuração</label>
+      <input type="text" id="periodo" placeholder="Ex: Fevereiro/2025 ou 01/03 a 31/03/2025">
+    </div>
+    <div class="checkbox-row" style="margin-bottom:4px">
+      <input type="checkbox" id="adicionalNoturno">
+      <label for="adicionalNoturno">Calcular adicional noturno (horas entre 22h e 5h)</label>
+    </div>
+    <div class="hint" style="margin-bottom:12px">Adicional de 20% sobre as horas trabalhadas no período noturno</div>
+    <div class="field">
+      <label>Banco de horas anterior (opcional)</label>
+      <input type="text" id="bancoAnterior" placeholder="Ex: +2h30 ou -1h15">
+    </div>
+  </div>
+
+  <div class="alert">
+    ⚠️ Nunca inclua dados pessoais identificáveis (CPF, RG, nome completo). Use iniciais ou código do colaborador para proteger a privacidade — LGPD.
+  </div>
+
+  <button class="btn" id="btnApurar" onclick="apurar()">Apurar ponto com IA</button>
+
+  <div id="loadingArea" style="display:none" class="loading">
+    <div class="spinner"></div>
+    <span>Analisando o arquivo e apurando o ponto...</span>
+  </div>
+
+  <div id="resultArea" style="display:none" class="result-card">
+    <div class="result-title">Apuração completa — IA no DP</div>
+    <div class="result-content" id="resultContent"></div>
+    <button class="copy-btn" onclick="copyResult()">Copiar resultado</button>
+  </div>
+</div>
+
+<script>
+let fileData = null;
+let fileType = null;
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('active'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('active');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+
+function handleFile(input) { if (input.files[0]) processFile(input.files[0]); }
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileData = e.target.result.split(',')[1];
+    fileType = file.type;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('filePreview').style.display = 'flex';
+    dropZone.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeFile() {
+  fileData = null; fileType = null;
+  document.getElementById('filePreview').style.display = 'none';
+  dropZone.style.display = 'block';
+  document.getElementById('fileInput').value = '';
+}
+
+async function apurar() {
+  if (!fileData) { alert('Por favor, anexe o arquivo do ponto.'); return; }
+  const entrada = document.getElementById('entrada').value;
+  const saida = document.getElementById('saida').value;
+  const intervalo = document.getElementById('intervalo').value;
+  const diasSemana = document.getElementById('diasSemana').value;
+  const saidaSab = document.getElementById('saidaSab').value;
+  const periodo = document.getElementById('periodo').value || 'não informado';
+  const adicionalNoturno = document.getElementById('adicionalNoturno').checked;
+  const bancoAnterior = document.getElementById('bancoAnterior').value;
+  const diasLabel = diasSemana === 'seg-sex' ? 'segunda a sexta' : diasSemana === 'seg-sab' ? `segunda a sexta (${entrada} às ${saida}) e sábado (${entrada} às ${saidaSab})` : 'segunda a domingo';
+
+  const prompt = `Você é um especialista em Departamento Pessoal e apuração de ponto.\n\nAnalise o arquivo de ponto anexado e faça a apuração completa:\n\nCONTEXTO:\n- Período: ${periodo}\n- Jornada: entrada ${entrada}, saída ${saida}, intervalo ${intervalo} minutos\n- Dias: ${diasLabel}\n${adicionalNoturno ? '- Calcular adicional noturno para horas entre 22h e 5h (20%)\n' : ''}${bancoAnterior ? `- Banco anterior: ${bancoAnterior}\n` : ''}\nFLUXO:\n1. Extraia os registros de cada dia\n2. Identifique atrasos na entrada\n3. Identifique saídas antecipadas\n4. Verifique se o intervalo foi respeitado\n5. Calcule horas extras por dia\n${adicionalNoturno ? '6. Calcule o adicional noturno por dia\n' : ''}6. Aponte ausências sem justificativa\n7. Some todas as horas trabalhadas\n8. Compare com a carga horária esperada\n${bancoAnterior ? '9. Considere o banco anterior e calcule saldo acumulado\n' : ''}9. Informe saldo final positivo ou negativo em horas e minutos\n\nOUTPUT:\n\nPARTE 1 — TABELA DIÁRIA\nData | Entrada | Saída | Intervalo | Horas Trab. | HE | ${adicionalNoturno ? 'Ad. Noturno | ' : ''}Ocorrência | Obs.\n\nPARTE 2 — RESUMO FINAL\n- Total trabalhado\n- Total esperado\n${bancoAnterior ? '- Banco anterior\n' : ''}- Saldo do período\n${bancoAnterior ? '- Saldo acumulado\n' : ''}${adicionalNoturno ? '- Total horas com adicional noturno\n' : ''}- Principais ocorrências`;
+
+  document.getElementById('btnApurar').disabled = true;
+  document.getElementById('loadingArea').style.display = 'flex';
+  document.getElementById('resultArea').style.display = 'none';
+
+  try {
+    const isImage = fileType.startsWith('image/');
+    const contentArray = [{ type: 'text', text: prompt }];
+    if (isImage) {
+      contentArray.unshift({ type: 'image', source: { type: 'base64', media_type: fileType, data: fileData } });
+    } else {
+      contentArray.unshift({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fileData } });
+    }
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, messages: [{ role: 'user', content: contentArray }] })
+    });
+    const data = await response.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Não foi possível processar o arquivo.';
+    document.getElementById('resultContent').textContent = text;
+    document.getElementById('resultArea').style.display = 'block';
+  } catch (err) {
+    document.getElementById('resultContent').textContent = 'Erro ao processar. Verifique o arquivo e tente novamente.';
+    document.getElementById('resultArea').style.display = 'block';
+  }
+  document.getElementById('btnApurar').disabled = false;
+  document.getElementById('loadingArea').style.display = 'none';
+}
+
+function copyResult() {
+  navigator.clipboard.writeText(document.getElementById('resultContent').textContent).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar resultado', 2000);
+  });
+}
+</script>
+</body>
+</html>
